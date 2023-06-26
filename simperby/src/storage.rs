@@ -1,3 +1,6 @@
+use crate::peers::Peers;
+use tokio::io::AsyncWriteExt;
+
 use super::*;
 
 fn governance_dms_path(path: &str) -> String {
@@ -10,6 +13,10 @@ fn consensus_dms_path(path: &str) -> String {
 
 fn consensus_state_path(path: &str) -> String {
     format!("{path}/.simperby/consensus/state")
+}
+
+fn peers_path(path: &str) -> String {
+    format!("{path}/.simperby/peers.json")
 }
 
 pub(crate) async fn init(path: &str) -> Result<()> {
@@ -29,10 +36,14 @@ pub(crate) async fn init(path: &str) -> Result<()> {
     StorageImpl::create(&governance_dms_path(path)).await?;
     StorageImpl::create(&consensus_dms_path(path)).await?;
     StorageImpl::create(&consensus_state_path(path)).await?;
+    let mut file = tokio::fs::File::create(&peers_path(path)).await?;
+    file.write_all(serde_spb::to_string(&Vec::<Peer>::new())?.as_bytes())
+        .await?;
+
     Ok(())
 }
 
-/// `(Governance DMS, Consensus DMS, ConsensusState, Distributed Repository)`.
+/// `(Governance DMS, Consensus DMS, ConsensusState, Distributed Repository, Peers)`.
 pub(crate) async fn open(
     path: &str,
     _config: types::Config,
@@ -42,6 +53,7 @@ pub(crate) async fn open(
     Dms<simperby_consensus::ConsensusMessage>,
     StorageImpl,
     DistributedRepository,
+    Peers,
 )> {
     let repository = DistributedRepository::new(
         Arc::new(RwLock::new(RawRepository::open(path).await?)),
@@ -82,7 +94,14 @@ pub(crate) async fn open(
     )
     .await?;
     let consensus_state = StorageImpl::open(&consensus_state_path(path)).await?;
-    Ok((governance_dms, consensus_dms, consensus_state, repository))
+    let lfi = repository.read_last_finalization_info().await?;
+    Ok((
+        governance_dms,
+        consensus_dms,
+        consensus_state,
+        repository,
+        Peers::new(&peers_path(path), lfi).await?,
+    ))
 }
 
 pub(crate) async fn clear(path: &str) -> Result<()> {

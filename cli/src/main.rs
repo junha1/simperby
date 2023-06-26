@@ -284,6 +284,39 @@ async fn run(
             let mut client = Client::open(&path, config, auth.clone()).await?;
             client.broadcast().await
         }
+        (Commands::Peer(cli::PeerCommand::Add { address, name }), Some(config), Some(auth), _) => {
+            let mut client = Client::open(&path, config, auth.clone()).await?;
+            client
+                .add_peer(name, address.parse().map_err(|_| eyre!("invalid address"))?)
+                .await?;
+            Ok(())
+        }
+        (Commands::Peer(cli::PeerCommand::Remove { name }), Some(config), Some(auth), _) => {
+            let mut client = Client::open(&path, config, auth.clone()).await?;
+            client.remove_peer(name).await?;
+            Ok(())
+        }
+        (Commands::Peer(cli::PeerCommand::List), Some(config), Some(auth), _) => {
+            let client = Client::open(&path, config, auth.clone()).await?;
+            let results = client.get_peer_list().await?;
+            for result in results {
+                println!("{}", serde_json::to_string_pretty(&result).unwrap());
+            }
+            Ok(())
+        }
+        (Commands::Peer(cli::PeerCommand::Update), Some(config), Some(auth), _) => {
+            let mut client = Client::open(&path, config, auth.clone()).await?;
+            client.update_peer().await?;
+            Ok(())
+        }
+        (Commands::Peer(cli::PeerCommand::Status), Some(config), Some(auth), _) => {
+            let client = Client::open(&path, config, auth.clone()).await?;
+            let results = client.get_peer_status().await?;
+            for result in results {
+                println!("{}", serde_json::to_string_pretty(&result).unwrap());
+            }
+            Ok(())
+        }
         (_, _, None, _) => Err(eyre!("auth is not provided")),
         (_, None, _, _) => Err(eyre!("config is not provided")),
         (_, _, _, None) => Err(eyre!("server config is not provided")),

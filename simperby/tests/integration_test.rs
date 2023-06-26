@@ -91,21 +91,14 @@ async fn normal_1() {
 
     // Setup clients
     let mut clients = Vec::new();
-    for (_, key) in keys.iter().take(3) {
+    for ((_, key), peer) in keys.iter().take(3).zip(peers.iter()) {
         let dir = create_temp_dir();
         run_command(format!("cp -a {server_dir}/. {dir}/")).await;
         let auth = Auth {
             private_key: key.clone(),
         };
-        let mut client = Client::open(
-            &dir,
-            Config {
-                peers: peers.clone(),
-            },
-            auth,
-        )
-        .await
-        .unwrap();
+        let mut client = Client::open(&dir, Config {}, auth).await.unwrap();
+        client.add_peer_raw(peer.clone()).await.unwrap();
         client.add_remote_repositories().await.unwrap();
         clients.push(client);
     }
@@ -115,9 +108,7 @@ async fn normal_1() {
         private_key: keys[3].1.clone(),
     };
     tokio::spawn(async move {
-        let client = Client::open(&server_dir, Config { peers: Vec::new() }, auth)
-            .await
-            .unwrap();
+        let client = Client::open(&server_dir, Config {}, auth).await.unwrap();
         let task = client
             .serve(
                 server_config,

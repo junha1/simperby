@@ -43,10 +43,7 @@ pub enum CommitInfo {
 
 /// A configuration for a node.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Config {
-    /// TODO: remove this and introduce a proper peer discovery protocol
-    pub peers: Vec<Peer>,
-}
+pub struct Config {}
 
 /// Hosting a server node requires extra configuration.
 #[derive(Debug, Serialize, Deserialize, Clone)]

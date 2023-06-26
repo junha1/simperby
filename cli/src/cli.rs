@@ -47,10 +47,12 @@ pub enum PeerCommand {
     Add { address: String, name: String },
     /// Remove the peer with the given name.
     Remove { name: String },
-    /// Updates the peer list using the peer discovery protocol.
+    /// Update the peer list using the peer discovery protocol.
     /// This may leave some remote repositories with the prefix `>`.
     Update,
-    /// Prints the status of the discovered peers.
+    /// Print the list of peers.
+    List,
+    /// Print the status of the discovered peers.
     Status,
 }
 
